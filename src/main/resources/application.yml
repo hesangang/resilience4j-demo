@@ -1,0 +1,108 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: nacos-service
+  cloud:
+    nacos:
+      config:
+        enabled: true
+        file-extension: yaml
+        group: DEFAULT_GROUP
+        namespace: public
+        password: nacos
+        server-addr: localhost:8848
+        username: nacos
+      discovery:
+        namespace: public
+        password: nacos
+        server-addr: localhost:8848
+        username: nacos
+    openfeign:
+      circuitbreaker:
+        enabled: true
+        group:
+          enabled: true #没开分组永远不用分组的配置。精确优先、分组次之(开了分组)、默认最后
+
+#feign.circuitbreaker.enabled: true
+
+####resilience4j bulkhead 的例子
+resilience4j:
+  # 熔断
+  circuitbreaker:
+    circuitBreakerAspectOrder: 1
+    configs:
+      default:
+        failureRateThreshold: 50 #设置50%的调用失败时打开断路器，超过失败请求百分⽐CircuitBreaker变为OPEN状态。
+        slidingWindowType: COUNT_BASED # 滑动窗口的类型
+        slidingWindowSize: 6 #滑动窗⼝的⼤⼩配置COUNT_BASED表示6个请求，配置TIME_BASED表示6秒
+        minimumNumberOfCalls: 6 #断路器计算失败率或慢调用率之前所需的最小样本(每个滑动窗口周期)。如果minimumNumberOfCalls为10，则必须最少记录10个样本，然后才能计算失败率。如果只记录了9次调用，即使所有9次调用都失败，断路器也不会开启。
+        automaticTransitionFromOpenToHalfOpenEnabled: true # 是否启用自动从开启状态过渡到半开状态，默认值为true。如果启用，CircuitBreaker将自动从开启状态过渡到半开状态，并允许一些请求通过以测试服务是否恢复正常
+        waitDurationInOpenState: 5s #从OPEN到HALF_OPEN状态需要等待的时间
+        permittedNumberOfCallsInHalfOpenState: 2 #半开状态允许的最大请求数，默认值为10。在半开状态下，CircuitBreaker将允许最多permittedNumberOfCallsInHalfOpenState个请求通过，如果其中有任何一个请求失败，CircuitBreaker将重新进入开启状态。
+        recordExceptions:
+          - java.lang.Exception
+    instances:
+      cloud-payment-service:
+        baseConfig: default
+  # 限流
+  ratelimiter:
+    configs:
+      default:
+        limitForPeriod: 2 #在一次刷新周期内，允许执行的最大请求数
+        limitRefreshPeriod: 1s # 限流器每隔limitRefreshPeriod刷新一次，将允许处理的最大请求数量重置为limitForPeriod
+        timeout-duration: 1s # 线程等待权限的默认等待时间
+    instances:
+      productRateLimiter:
+        limitForPeriod: 3   # 每10秒内可用3个
+        limitRefreshPeriod: 10s
+        timeoutDuration: 0
+  # 超时
+  timelimiter:
+    configs:
+      default:
+        timeout-duration: 3s #timelimiter默认限制远程1s，超过报错不好演示效果所以加上10秒
+    instances:
+      ratingTimeoutService:
+        timeout-duration: 5s        # 3秒超时
+        cancel-running-future: true #超时后取消正在执行的线程任务
+  # 信号量隔板
+  bulkhead:
+    configs:
+      default:
+        maxConcurrentCalls: 2 # 隔离允许并发线程执行的最大数量
+        maxWaitDuration: 1s # 当达到并发调用数量时，新的线程的阻塞时间，我只愿意等待1秒，过时不候进舱壁兜底fallback
+    instances:
+      backendA:
+        baseConfig: default
+  # 线程池隔板
+  thread-pool-bulkhead:
+    configs:
+      default:
+        maxThreadPoolSize: 4
+        coreThreadPoolSize: 2
+        queueCapacity: 2
+        contextPropagator:
+          - com.sangang.demoretry.config.CustomContextPropagator
+    instances:
+      backendA:
+        baseConfig: default
+    backends:
+      backendA:
+        contextPropagator:
+          - com.sangang.demoretry.config.CustomContextPropagator
+  # 重试 配置不生效
+  retry111:
+    retryAspectOrder: 2
+    configs:
+      default:
+        max-attempts: 2 # 最多重试3次
+        wait-duration: 1s # 每次重试调用前，等待2秒
+        retry-exceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - com.sangang.demoretry.common.CommonException
+        ignore-exceptions:
+          - org.springframework.web.client.HttpClientErrorException
+    instances:
+      ratingCircuitBreakService:
+        base-config: default

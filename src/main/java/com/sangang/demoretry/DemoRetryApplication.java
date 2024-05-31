@@ -1,4 +1,4 @@
-package com.yili.demoretry;
+package com.sangang.demoretry;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

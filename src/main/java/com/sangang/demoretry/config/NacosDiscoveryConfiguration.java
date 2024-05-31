@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.yili.demoretry.demos.nacosdiscoveryconsumer;
+package com.sangang.demoretry.config;
 
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.context.annotation.Configuration;
 
-@FeignClient("nacos-service") // 指向服务提供者应用
-public interface EchoService {
-
-    @GetMapping("/echo/{message}")
-    String echo(@PathVariable("message") String message);
+/**
+ * @author <a href="mailto:chenxilzx1@gmail.com">theonefx</a>
+ */
+@EnableDiscoveryClient
+@Configuration
+public class NacosDiscoveryConfiguration {
 }

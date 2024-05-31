@@ -14,15 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.yili.demoretry.config;
+package com.sangang.demoretry.demos.nacosdiscoveryconsumer;
 
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
-/**
- * @author <a href="mailto:chenxilzx1@gmail.com">theonefx</a>
- */
-@EnableDiscoveryClient
-@Configuration
-public class NacosDiscoveryConfiguration {
+//@FeignClient(contextId = "resourceClient", value = "auth-service", configuration = FeignInterceptor.class,fallback = ResourceClientHystrix.class)
+@FeignClient(contextId = "resourceClient",value = "nacos-service",fallback = EchoServiceHystrix.class) // 指向服务提供者应用
+public interface EchoService {
+
+    @GetMapping("/echo/{message}")
+    String echo(@PathVariable("message") String message);
 }
